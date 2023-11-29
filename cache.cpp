@@ -10,6 +10,8 @@ cache::cache()
 			L2[i][j].valid = false;
 
 	// Do the same for Victim Cache ...
+	for (int i = 0; i < VICTIM_SIZE; i++)
+		VC[i].valid = false;
 
 	this->myStat.missL1 = 0;
 	this->myStat.missL2 = 0;
@@ -35,8 +37,9 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 	else if (MemW)
 	{
 		// cout << "STORE" << endl;
-		if (containsL1(adrInfo, data))
+		if (containsL1(adrInfo)) // Check to see if data exists in L1 Direct Map
 		{
+			updateDataL1(adrInfo, data);
 		}
 		//  else if (containsVC())
 		//  {
@@ -101,4 +104,28 @@ void cache::setBlock(int *block, int adr)
 		block[i] = temp + i;
 		cout << block[i] << endl;
 	}
+}
+
+// Checks if block exists in L1 cache
+bool cache::containsL1(addressInfo adrInfo)
+{
+	int index = adrInfo.index;
+	if (L1[index].valid)
+	{
+		if (adrInfo.tag == L1[index].tag)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Updates value in L1 cache
+bool cache::updateDataL1(addressInfo adrInfo, int *data)
+{
+	cout << "Data before SW: " << L1[adrInfo.index].data << endl;
+	L1[adrInfo.index].data = *data;
+	cout << "Data after SW: " << L1[adrInfo.index].data << endl;
+	return true;
 }

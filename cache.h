@@ -48,6 +48,7 @@ private:
 	cacheBlock L1[L1_CACHE_SETS];				 // 1 set per row.
 	cacheBlock L2[L2_CACHE_SETS][L2_CACHE_WAYS]; // x ways per row
 	// Add your Victim cache here ...
+	cacheBlock VC[VICTIM_SIZE];
 
 	Stat myStat;
 	// add more things here
@@ -55,6 +56,10 @@ public:
 	cache();
 	void controller(bool MemR, bool MemW, int *data, int adr, int *myMem);
 	// add more functions here ...
-	addressInfo decode(bitset<32> adr); // decode into index, offset, and tag
-	void setBlock(int *block, int adr); // sets indices for full block
+	addressInfo decode(bitset<32> adr);				   // decode into index, offset, and tag
+	void setBlock(int *block, int adr);				   // sets indices for full block
+	bool containsL1(addressInfo adrInfo);			   // checks if block exists in L1
+	bool updateDataL1(addressInfo adrInfo, int *data); // updates data in L1
+	bool containsVC(addressInfo adrInfo);			   // checks if block exists in Victim Cache
+	bool updateVC(addressInfo adrInfo, int *data);	   // updates data in Victim Cache
 };
