@@ -22,11 +22,11 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 {
 	// add your code here
 	addressInfo adrInfo; // Struct for storing index, offset, tag, and address
-	int block[4];		 // byte addresses to update
+	int block[4];		 // byte addresses to update (block indices in MAIN MEMORY)
 	setBlock(block, adr);
 
 	bitset<32> address = bitset<32>(adr);
-	adrInfo = decode(address);
+	adrInfo = decode(address); // Function to populate addressInfo struct
 
 	if (MemR)
 	{
@@ -35,9 +35,9 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 	else if (MemW)
 	{
 		// cout << "STORE" << endl;
-		//  if (containsL1())
-		//  {
-		//  }
+		if (containsL1(adrInfo, data))
+		{
+		}
 		//  else if (containsVC())
 		//  {
 		//  	// update LRU position
