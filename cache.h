@@ -40,6 +40,7 @@ struct addressInfo
 	int offset;
 	int tag;
 	int address;
+	int victimPos;
 };
 
 class cache
@@ -60,6 +61,8 @@ public:
 	void setBlock(int *block, int adr);				   // sets indices for full block
 	bool containsL1(addressInfo adrInfo);			   // checks if block exists in L1
 	bool updateDataL1(addressInfo adrInfo, int *data); // updates data in L1
-	bool containsVC(addressInfo adrInfo);			   // checks if block exists in Victim Cache
+	bool containsVC(addressInfo *adrInfo);			   // checks if block exists in Victim Cache
 	bool updateVC(addressInfo adrInfo, int *data);	   // updates data in Victim Cache
+
+	bool updateMainMem(int block[], int *data, int *myMem); // updates data in Main Memory
 };

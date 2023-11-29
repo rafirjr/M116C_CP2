@@ -30,6 +30,9 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 	bitset<32> address = bitset<32>(adr);
 	adrInfo = decode(address); // Function to populate addressInfo struct
 
+	// cout << *data << endl;
+	// cout << data << endl;
+
 	if (MemR)
 	{
 		// cout << "LOAD" << endl;
@@ -41,16 +44,16 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 		{
 			updateDataL1(adrInfo, data);
 		}
-		//  else if (containsVC())
-		//  {
-		//  	// update LRU position
-		//  }
+		else if (containsVC(&adrInfo)) // Check to see if data exists in Victim Cache
+		{
+			updateVC(adrInfo, data);
+		}
 		//  else if (containsL2())
 		//  {
 		//  	// update LRU position
 		//  }
 
-		// updateMainMem();
+		updateMainMem(block, data, myMem); // Update data in Main Memory
 	}
 }
 
@@ -90,10 +93,12 @@ addressInfo cache::decode(bitset<32> adr)
 	currBlk.index = index.to_ulong();
 	currBlk.offset = offset.to_ulong();
 	currBlk.tag = tag.to_ulong();
+	currBlk.victimPos = 0;
 
 	return currBlk;
 }
 
+// Sets addresses to a block of memory (4 bytes, each memory index is 1 byte)
 void cache::setBlock(int *block, int adr)
 {
 	int temp = adr % 4;
@@ -102,7 +107,7 @@ void cache::setBlock(int *block, int adr)
 	for (int i = 0; i < 4; i++)
 	{
 		block[i] = temp + i;
-		cout << block[i] << endl;
+		// cout << block[i] << endl;
 	}
 }
 
@@ -127,5 +132,47 @@ bool cache::updateDataL1(addressInfo adrInfo, int *data)
 	cout << "Data before SW: " << L1[adrInfo.index].data << endl;
 	L1[adrInfo.index].data = *data;
 	cout << "Data after SW: " << L1[adrInfo.index].data << endl;
+	return true;
+}
+
+// Checks if block exists in Victim Cache
+bool cache::containsVC(addressInfo *adrInfo)
+{
+	for (int i = 0; i < VICTIM_SIZE; i++)
+	{
+		if (VC[i].valid && VC[i].tag == adrInfo->tag)
+		{
+			adrInfo->victimPos = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Updates value and LRU position in Victim Cache
+bool cache::updateVC(addressInfo adrInfo, int *data)
+{
+	VC[adrInfo.victimPos].data = *data;
+
+	for (int i = VICTIM_SIZE - 1; i > VC[adrInfo.victimPos].lru_position; i--) // Reduces LRU position by 1 for all positions above current position
+	{
+		VC[i].lru_position--;
+	}
+	VC[adrInfo.victimPos].lru_position = VICTIM_SIZE - 1; // Updates LRU position of current block to Most Recently Used
+
+	return true;
+}
+
+// Updates data in MainMemory
+bool cache::updateMainMem(int block[], int *data, int *myMem) // Updates data in Main Memory
+{
+	for (int i = 0; i < 4; i++)
+	{
+		myMem[block[i]] = *data;
+	}
+
+	cout << myMem[block[0]] << endl;
+
 	return true;
 }
