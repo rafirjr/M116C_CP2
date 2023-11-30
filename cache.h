@@ -53,6 +53,8 @@ private:
 
 	Stat myStat;
 	// add more things here
+	bool vcFull;
+
 public:
 	cache();
 	void controller(bool MemR, bool MemW, int *data, int adr, int *myMem);
@@ -64,5 +66,5 @@ public:
 	bool containsVC(addressInfo *adrInfo);			   // checks if block exists in Victim Cache
 	bool updateVC(addressInfo adrInfo, int *data);	   // updates data in Victim Cache
 
-	bool updateMainMem(int block[], int *data, int *myMem); // updates data in Main Memory
+	// bool updateMainMem(int *data, int *myMem); // updates data in Main Memory
 };

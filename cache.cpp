@@ -19,23 +19,55 @@ cache::cache()
 	this->myStat.accL2 = 0;
 
 	// Add stat for Victim cache ...
+	this->myStat.missVic = 0;
+	this->myStat.accVic = 0;
+
+	this->vcFull = false;
 }
 void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 {
 	// add your code here
 	addressInfo adrInfo; // Struct for storing index, offset, tag, and address
-	int block[4];		 // byte addresses to update (block indices in MAIN MEMORY)
-	setBlock(block, adr);
+	cacheBlock tempCacheBlock;
+	// int block[4];		 // byte addresses to update (block indices in MAIN MEMORY)
+	// setBlock(block, adr);
 
 	bitset<32> address = bitset<32>(adr);
 	adrInfo = decode(address); // Function to populate addressInfo struct
 
-	// cout << *data << endl;
-	// cout << data << endl;
+	// Victim Cache VARIABLES
+	int vcIndex;
+	int vcLRU;
 
 	if (MemR)
 	{
 		// cout << "LOAD" << endl;
+		if (containsL1(adrInfo))
+		{
+			cout << "Block exists in L1" << endl;
+		}
+		else if (containsVC(&adrInfo))
+		{
+			cout << "Block exists in VC" << endl;
+			// Need to move block into L1
+			if (!L1[adrInfo.index].valid) // If empty available block in L1
+			{
+				L1[adrInfo.index].data = *data;
+				L1[adrInfo.index].lru_position = 0;
+				L1[adrInfo.index].tag = adrInfo.tag;
+				L1[adrInfo.index].valid = true;
+			}
+			else // Specified index is taken by another block
+			{
+				tempCacheBlock = L1[adrInfo.index]; // Need to move this down to VC
+				L1[adrInfo.index].data = *data;
+				L1[adrInfo.index].lru_position = 0;
+				L1[adrInfo.index].tag = adrInfo.tag;
+				L1[adrInfo.index].valid = true;
+
+				// add tempCacheBlock to VC here... (VC tag = L1-tag + L1-index)
+			}
+		}
 	}
 	else if (MemW)
 	{
@@ -53,7 +85,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 		//  	// update LRU position
 		//  }
 
-		updateMainMem(block, data, myMem); // Update data in Main Memory
+		myMem[adr] = *data; // Update data in Main Memory
 	}
 }
 
@@ -101,8 +133,9 @@ addressInfo cache::decode(bitset<32> adr)
 // Sets addresses to a block of memory (4 bytes, each memory index is 1 byte)
 void cache::setBlock(int *block, int adr)
 {
-	int temp = adr % 4;
-	temp = adr - temp;
+	int set = adr * 4;
+	int temp = set % 4;
+	temp = set - temp;
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -157,7 +190,8 @@ bool cache::updateVC(addressInfo adrInfo, int *data)
 
 	for (int i = VICTIM_SIZE - 1; i > VC[adrInfo.victimPos].lru_position; i--) // Reduces LRU position by 1 for all positions above current position
 	{
-		VC[i].lru_position--;
+		if (VC[i].valid) // VC might not be full
+			VC[i].lru_position--;
 	}
 	VC[adrInfo.victimPos].lru_position = VICTIM_SIZE - 1; // Updates LRU position of current block to Most Recently Used
 
@@ -165,14 +199,14 @@ bool cache::updateVC(addressInfo adrInfo, int *data)
 }
 
 // Updates data in MainMemory
-bool cache::updateMainMem(int block[], int *data, int *myMem) // Updates data in Main Memory
-{
-	for (int i = 0; i < 4; i++)
-	{
-		myMem[block[i]] = *data;
-	}
+// bool cache::updateMainMem(int *data, int *myMem) // Updates data in Main Memory
+// {
+// 	for (int i = 0; i < 4; i++)
+// 	{
+// 		myMem[block[i]] = *data;
+// 	}
 
-	cout << myMem[block[0]] << endl;
+// 	cout << myMem[block[0]] << endl;
 
-	return true;
-}
+// 	return true;
+// }
