@@ -29,8 +29,9 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 	// add your code here
 	addressInfo adrInfo; // Struct for storing index, offset, tag, and address
 	cacheBlock tempCacheBlock;
-	// int block[4];		 // byte addresses to update (block indices in MAIN MEMORY)
-	// setBlock(block, adr);
+	cacheBlock tempCacheBlock2;
+	int block[4]; // byte addresses to update (block indices in MAIN MEMORY)
+	setBlock(block, adr);
 
 	bitset<32> address = bitset<32>(adr);
 	adrInfo = decode(address); // Function to populate addressInfo struct
@@ -39,15 +40,20 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 	int vcIndex;
 	int vcLRU;
 
+	int L2index;
+
 	if (MemR)
 	{
 		// cout << "LOAD" << endl;
 		if (containsL1(adrInfo))
 		{
 			cout << "Block exists in L1" << endl;
+			this->myStat.accL1++;
 		}
 		else if (containsVC(&adrInfo))
 		{
+			this->myStat.accVic++;
+			this->myStat.missL1++; // Missed in L1
 			cout << "Block exists in VC" << endl;
 			// Need to move block into L1
 			if (!L1[adrInfo.index].valid) // If empty available block in L1
@@ -56,16 +62,213 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 				L1[adrInfo.index].lru_position = 0;
 				L1[adrInfo.index].tag = adrInfo.tag;
 				L1[adrInfo.index].valid = true;
+				// TODO add block of MEM to L1 cache
+
+				VC[adrInfo.victimPos].valid = false;
+				// TODO update LRU
+				for (int i = 0; i < 4; i++)
+				{
+					if (VC[i].valid && VC[i].lru_position < VC[adrInfo.victimPos].lru_position)
+						VC[i].lru_position++;
+				}
 			}
 			else // Specified index is taken by another block
 			{
 				tempCacheBlock = L1[adrInfo.index]; // Need to move this down to VC
 				L1[adrInfo.index].data = *data;
+				// L1[adrInfo.index].lru_position = 0;
+				L1[adrInfo.index].tag = adrInfo.tag;
+				L1[adrInfo.index].valid = true;
+				// TODO add block of MEM to L1 cache
+
+				// add tempCacheBlock to VC here... (VC tag = L1->tag + L1->index)
+				tempCacheBlock.lru_position = VICTIM_SIZE - 1;
+				VC[adrInfo.victimPos] = tempCacheBlock;
+				VC[adrInfo.victimPos].victimTag = tempCacheBlock.tag + adrInfo.index;
+				for (int i = 0; i < 4; i++) // Reduces LRU position by 1 for all positions above current position
+				{
+					if (VC[i].valid && VC[i].lru_position > L1[adrInfo.index].lru_position && adrInfo.victimPos != i) // VC might not be full
+						VC[i].lru_position--;
+				}
+				L1[adrInfo.index].lru_position = 0; // No need for lru_position in L1 cache
+			}
+		}
+		else if (containsL2(&adrInfo))
+		{
+			this->myStat.missL1++;	// Miss in L1
+			this->myStat.missVic++; // Miss in Victim Cache
+			this->myStat.accL2++;
+			cout << "Block exists in L2" << endl;
+
+			// Take L2 cache block and store it in L1
+			// Need to move block into L1
+			if (!L1[adrInfo.index].valid) // If empty available block in L1
+			{
+				L1[adrInfo.index].data = *data;
 				L1[adrInfo.index].lru_position = 0;
 				L1[adrInfo.index].tag = adrInfo.tag;
 				L1[adrInfo.index].valid = true;
+				// TODO add block of MEM to L1 cache
 
-				// add tempCacheBlock to VC here... (VC tag = L1-tag + L1-index)
+				// TODO invalidate old block in L2 cache
+				L2[adrInfo.index][adrInfo.L2Pos].valid = false;
+				// Update L2 LRU
+				for (int i = 0; i < 8; i++)
+				{
+					if (L2[adrInfo.index][i].valid && L2[adrInfo.index][i].lru_position < L2[adrInfo.index][adrInfo.L2Pos].lru_position)
+						L2[adrInfo.index][i].lru_position++;
+				}
+			}
+			else
+			{
+				tempCacheBlock = L1[adrInfo.index];
+				L1[adrInfo.index].data = *data;
+				L1[adrInfo.index].lru_position = 0;
+				L1[adrInfo.index].tag = adrInfo.tag;
+				L1[adrInfo.index].valid = true;
+				L1[adrInfo.index].lru_position = 0; // No need for lru_position in L1 cache
+				// TODO add block of MEM to L1 cache
+				tempCacheBlock.lru_position = VICTIM_SIZE - 1;
+
+				// add tempCacheBlock to VC
+				if (victimFull())
+				{
+					// tempCacheBlock2 = findEvictVictim();
+					vcIndex = findEvictVictimIndex();
+					tempCacheBlock2 = VC[vcIndex];
+					VC[vcIndex] = tempCacheBlock;
+					VC[vcIndex].victimTag = tempCacheBlock.tag + adrInfo.index;
+					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
+					{
+						if (i != vcIndex)
+							VC[i].lru_position--;
+					}
+
+					// TODO add tempCacheBlock2 to L2
+					tempCacheBlock2.lru_position = 7;
+					for (int i = 0; i < 8; i++)
+					{
+						if (L2[adrInfo.index][i].valid && i != adrInfo.L2Pos && L2[adrInfo.index][i].lru_position > L2[adrInfo.index][adrInfo.L2Pos].lru_position)
+							L2[adrInfo.index][i].lru_position--;
+					}
+					L2[adrInfo.index][adrInfo.L2Pos] = tempCacheBlock2;
+				}
+				else // If victim cache is not full (DONT THINK THIS IS POSSIBLE)
+				{
+					for (int i = 0; i < 3; i++)
+					{
+						if (!VC[i].valid)
+							vcIndex = i;
+					}
+					VC[vcIndex] = tempCacheBlock;
+					VC[vcIndex].victimTag = tempCacheBlock.tag + adrInfo.index;
+					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
+					{
+						if (i != vcIndex)
+							VC[i].lru_position--;
+					}
+
+					L2[adrInfo.index][adrInfo.L2Pos].valid = false;
+					for (int i = 0; i < 8; i++)
+					{
+						if (L2[adrInfo.index][i].valid && L2[adrInfo.index][i].lru_position < L2[adrInfo.index][adrInfo.L2Pos].lru_position)
+							L2[adrInfo.index][i].lru_position++;
+					}
+				}
+
+				// adrInfo has L2 position
+			}
+		}
+		else
+		{
+			cout << "Block only exists in Main Memory" << endl;
+			this->myStat.missL1++;
+			this->myStat.missVic++;
+			this->myStat.missL2++;
+
+			// Take Main Memory block and store it in L1
+			// Need to move block into L1
+			if (!L1[adrInfo.index].valid) // If empty available block in L1
+			{
+				L1[adrInfo.index].data = *data;
+				L1[adrInfo.index].lru_position = 0;
+				L1[adrInfo.index].tag = adrInfo.tag;
+				L1[adrInfo.index].valid = true;
+				// TODO add block of MEM to L1 cache
+			}
+			else
+			{
+				tempCacheBlock = L1[adrInfo.index];
+				L1[adrInfo.index].data = *data;
+				L1[adrInfo.index].lru_position = 0;
+				L1[adrInfo.index].tag = adrInfo.tag;
+				L1[adrInfo.index].valid = true;
+				L1[adrInfo.index].lru_position = 0; // No need for lru_position in L1 cache
+				// TODO add block of MEM to L1 cache
+
+				tempCacheBlock.lru_position = VICTIM_SIZE - 1;
+
+				// add tempCacheBlock to VC
+				if (victimFull())
+				{
+					// tempCacheBlock2 = findEvictVictim();
+					vcIndex = findEvictVictimIndex();
+					tempCacheBlock2 = VC[vcIndex];
+					VC[vcIndex] = tempCacheBlock;
+					VC[vcIndex].victimTag = tempCacheBlock.tag + adrInfo.index;
+					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
+					{
+						if (i != vcIndex)
+							VC[i].lru_position--;
+					}
+
+					if (L2Full(adrInfo.index))
+					{
+						L2index = findEvictL2Index(adrInfo.index);
+						tempCacheBlock2.lru_position = 7;
+						L2[adrInfo.index][L2index] = tempCacheBlock2;
+						for (int i = 0; i < 8; i++)
+						{
+							if (i != L2index)
+								L2[adrInfo.index][i].lru_position--;
+						}
+					}
+					else // If L2 is not full
+					{
+						// TODO add tempCacheBlock2 to L2
+						for (int i = 0; i < 8; i++)
+						{
+							if (!L2[adrInfo.index][i].valid)
+								L2index = i;
+						}
+
+						tempCacheBlock2.lru_position = 7;
+						for (int i = 0; i < 8; i++)
+						{
+							if (L2[adrInfo.index][i].valid && i != L2index) // && L2[adrInfo.index][i].lru_position > L2[adrInfo.index][adrInfo.L2Pos].lru_position)
+								L2[adrInfo.index][i].lru_position--;
+						}
+						L2[adrInfo.index][L2index] = tempCacheBlock2;
+					}
+				}
+				else // If victim cache is not full
+				{
+					for (int i = 0; i < 4; i++)
+					{
+						if (!VC[i].valid)
+							vcIndex = i;
+					}
+					tempCacheBlock.lru_position = 3;
+					VC[vcIndex] = tempCacheBlock;
+					VC[vcIndex].victimTag = tempCacheBlock.tag + adrInfo.index;
+					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
+					{
+						if (i != vcIndex && VC[i].valid)
+							VC[i].lru_position--;
+					}
+				}
+
+				// adrInfo has L2 position
 			}
 		}
 	}
@@ -80,10 +283,10 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 		{
 			updateVC(adrInfo, data);
 		}
-		//  else if (containsL2())
-		//  {
-		//  	// update LRU position
-		//  }
+		else if (containsL2(&adrInfo)) // Check to see if data exists in L2
+		{
+			updateL2(adrInfo, data);
+		}
 
 		myMem[adr] = *data; // Update data in Main Memory
 	}
@@ -106,6 +309,7 @@ addressInfo cache::decode(bitset<32> adr)
 	bitset<2> offset;
 	bitset<4> index;
 	bitset<26> tag;
+	bitset<30> victimTag;
 	addressInfo currBlk;
 
 	for (int i = 0; i < 2; i++)
@@ -121,11 +325,18 @@ addressInfo cache::decode(bitset<32> adr)
 		tag[i - 6] = adr[i];
 	}
 
+	for (int i = 2; i < 32; i++)
+	{
+		victimTag[i - 2] = adr[i];
+	}
+
 	currBlk.address = adr.to_ulong();
 	currBlk.index = index.to_ulong();
 	currBlk.offset = offset.to_ulong();
 	currBlk.tag = tag.to_ulong();
+	currBlk.victimTag = victimTag.to_ulong();
 	currBlk.victimPos = 0;
+	currBlk.L2Pos = 0;
 
 	return currBlk;
 }
@@ -173,7 +384,7 @@ bool cache::containsVC(addressInfo *adrInfo)
 {
 	for (int i = 0; i < VICTIM_SIZE; i++)
 	{
-		if (VC[i].valid && VC[i].tag == adrInfo->tag)
+		if (VC[i].valid && VC[i].victimTag == adrInfo->victimTag)
 		{
 			adrInfo->victimPos = i;
 			return true;
@@ -188,14 +399,85 @@ bool cache::updateVC(addressInfo adrInfo, int *data)
 {
 	VC[adrInfo.victimPos].data = *data;
 
-	for (int i = VICTIM_SIZE - 1; i > VC[adrInfo.victimPos].lru_position; i--) // Reduces LRU position by 1 for all positions above current position
+	for (int i = 0; i < 4; i++) // Reduces LRU position by 1 for all positions above current position
 	{
-		if (VC[i].valid) // VC might not be full
+		if (VC[i].valid && i != adrInfo.victimPos && VC[i].lru_position > VC[adrInfo.victimPos].lru_position) // VC might not be full
 			VC[i].lru_position--;
 	}
 	VC[adrInfo.victimPos].lru_position = VICTIM_SIZE - 1; // Updates LRU position of current block to Most Recently Used
 
 	return true;
+}
+
+// Checks if block exists in L2
+bool cache::containsL2(addressInfo *adrInfo)
+{
+	for (int i = 0; i < L2_CACHE_WAYS; i++)
+	{
+		if (L2[adrInfo->index][i].valid && L2[adrInfo->index][i].tag == adrInfo->tag)
+		{
+			adrInfo->L2Pos = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Updates value and LRU position in L2
+bool cache::updateL2(addressInfo adrInfo, int *data)
+{
+	L2[adrInfo.index][adrInfo.L2Pos].data = *data;
+
+	for (int i = L2_CACHE_WAYS - 1; i > L2[adrInfo.index][adrInfo.L2Pos].lru_position; i--)
+	{
+		if (L2[adrInfo.index][i].valid && i != adrInfo.L2Pos && L2[adrInfo.index][i].lru_position > L2[adrInfo.index][adrInfo.L2Pos].lru_position) // L2 might not be full
+			L2[adrInfo.index][i].lru_position--;
+	}
+	L2[adrInfo.index][adrInfo.L2Pos].lru_position = L2_CACHE_WAYS - 1;
+}
+
+// Checks if Victim Cache is full
+bool cache::victimFull()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		if (!VC[i].valid)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+int cache::findEvictVictimIndex()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		if (VC[i].lru_position == 0)
+			return i;
+	}
+}
+
+bool cache::L2Full(int index)
+{
+	for (int i = 0; i < 8; i++)
+	{
+		if (!L2[index][i].valid)
+			return false;
+	}
+
+	return true;
+}
+
+int cache::findEvictL2Index(int index)
+{
+	for (int i = 0; i < 8; i++)
+	{
+		if (L2[index][i].lru_position == 0)
+			return i;
+	}
 }
 
 // Updates data in MainMemory

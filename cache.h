@@ -22,6 +22,7 @@ struct cacheBlock
 	bool valid;
 	// add more things here if needed
 	int block[4];
+	int victimTag;
 };
 
 struct Stat
@@ -42,6 +43,8 @@ struct addressInfo
 	int tag;
 	int address;
 	int victimPos;
+	int L2Pos;
+	int victimTag;
 };
 
 class cache
@@ -66,6 +69,12 @@ public:
 	bool updateDataL1(addressInfo adrInfo, int *data); // updates data in L1
 	bool containsVC(addressInfo *adrInfo);			   // checks if block exists in Victim Cache
 	bool updateVC(addressInfo adrInfo, int *data);	   // updates data in Victim Cache
+	bool containsL2(addressInfo *adrInfo);			   // checks if block exists in L2
+	bool updateL2(addressInfo adrInfo, int *data);	   // updates data in L2
+	bool victimFull();
+	int findEvictVictimIndex();
+	bool L2Full(int index);
+	int findEvictL2Index(int index);
 
 	// bool updateMainMem(int *data, int *myMem); // updates data in Main Memory
 };
