@@ -21,6 +21,7 @@ struct cacheBlock
 	int data;		  // the actual data stored in the cache/memory
 	bool valid;
 	// add more things here if needed
+	int block[4];
 };
 
 struct Stat
