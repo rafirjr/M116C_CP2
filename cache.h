@@ -76,5 +76,9 @@ public:
 	bool L2Full(int index);
 	int findEvictL2Index(int index);
 
+	float calcL1MissRate();
+	float calcL2MissRate();
+	float calcVCMissRate();
+
 	// bool updateMainMem(int *data, int *myMem); // updates data in Main Memory
 };

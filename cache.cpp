@@ -486,6 +486,33 @@ int cache::findEvictL2Index(int index)
 	return -1;
 }
 
+// Calculate L1 miss rate
+float cache::calcL1MissRate()
+{
+	float res;
+	// cout << myStat.missL1 << endl;
+	// cout << myStat.accL1 << endl;
+	res = ((static_cast<float>(myStat.missL1)) / (myStat.missL1 + myStat.accL1));
+	// cout << res << endl;
+	return res;
+}
+
+// Calculate L2 miss rate
+float cache::calcL2MissRate()
+{
+	float res;
+	res = ((static_cast<float>(myStat.missL2)) / (myStat.missL2 + myStat.accL2));
+	return res;
+}
+
+// Calculate VC miss rate
+float cache::calcVCMissRate()
+{
+	float res;
+	res = ((static_cast<float>(myStat.missVic)) / (myStat.missVic + myStat.accVic));
+	return res;
+}
+
 // Updates data in MainMemory
 // bool cache::updateMainMem(int *data, int *myMem) // Updates data in Main Memory
 // {
