@@ -144,8 +144,15 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 							VC[i].lru_position--;
 					}
 
-					// TODO add tempCacheBlock2 to L2
+					// TODO add tempCacheBlock2 to L2 BUT NOT SWAPPING, HAS A DIFFERENT INDEX THAN BLOCK IN VICTIM CACHE
 					tempCacheBlock2.lru_position = 7;
+					bitset<30> tempIndex = tempCacheBlock2.victimTag;
+					for (int i = 0; i < 4; i++)
+					{
+						tempIndex2[i] = tempIndex[i];
+					}
+					L2index = tempIndex2.toulong();
+
 					for (int i = 0; i < 8; i++)
 					{
 						if (L2[adrInfo.index][i].valid && i != adrInfo.L2Pos && L2[adrInfo.index][i].lru_position > L2[adrInfo.index][adrInfo.L2Pos].lru_position)
