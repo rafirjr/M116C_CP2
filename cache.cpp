@@ -435,6 +435,8 @@ bool cache::updateL2(addressInfo adrInfo, int *data)
 			L2[adrInfo.index][i].lru_position--;
 	}
 	L2[adrInfo.index][adrInfo.L2Pos].lru_position = L2_CACHE_WAYS - 1;
+
+	return true;
 }
 
 // Checks if Victim Cache is full
@@ -458,6 +460,8 @@ int cache::findEvictVictimIndex()
 		if (VC[i].lru_position == 0)
 			return i;
 	}
+
+	return -1;
 }
 
 bool cache::L2Full(int index)
@@ -478,6 +482,8 @@ int cache::findEvictL2Index(int index)
 		if (L2[index][i].lru_position == 0)
 			return i;
 	}
+
+	return -1;
 }
 
 // Updates data in MainMemory
