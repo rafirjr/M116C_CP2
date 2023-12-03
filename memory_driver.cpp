@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) // the program runs like this: ./program <filen
 		myCache.controller(cur_MemR, cur_MemW, &cur_data, cur_adr, myMem); // in your memory controller you need to implement your FSM, LW, SW, and MM.
 	}
 
-	float L1_miss_rate, L2_miss_rate, VC_miss_rate, AAT;
+	double L1_miss_rate, L2_miss_rate, VC_miss_rate, AAT;
 	// compute the stats here:
 	L1_miss_rate = myCache.calcL1MissRate();
 	L2_miss_rate = myCache.calcL2MissRate();
