@@ -48,15 +48,15 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 		// cout << "LOAD" << endl;
 		if (containsL1(adrInfo))
 		{
-			cout << "Block exists in L1" << endl;
+			// cout << "Block exists in L1" << endl;
 			this->myStat.accL1++;
 		}
 		else if (containsVC(&adrInfo))
 		{
 			this->myStat.accVic++;
 			this->myStat.missL1++; // Missed in L1
-			cout << "Block exists in VC" << endl;
-			// Need to move block into L1
+			// cout << "Block exists in VC" << endl;
+			//  Need to move block into L1
 			if (!L1[adrInfo.index].valid) // If empty available block in L1
 			{
 				L1[adrInfo.index].data = *data;
@@ -92,7 +92,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 					tempVictimTag[i] = tempVCIndex[i];
 				for (int i = 4; i < 30; i++)
 					tempVictimTag[i] = tempTag[i - 4];
-				cout << tempVictimTag << endl;
+				// cout << tempVictimTag << endl;
 				VC[adrInfo.victimPos].victimTag = tempVictimTag.to_ulong();
 				// VC[adrInfo.victimPos].victimTag = tempCacheBlock.tag + adrInfo.index;
 				for (int i = 0; i < 4; i++) // Reduces LRU position by 1 for all positions above current position
@@ -108,7 +108,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 			this->myStat.missL1++;	// Miss in L1
 			this->myStat.missVic++; // Miss in Victim Cache
 			this->myStat.accL2++;
-			cout << "Block exists in L2" << endl;
+			// cout << "Block exists in L2" << endl;
 
 			// Take L2 cache block and store it in L1
 			// Need to move block into L1
@@ -155,7 +155,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						tempVictimTag[i] = tempVCIndex[i];
 					for (int i = 4; i < 30; i++)
 						tempVictimTag[i] = tempTag[i - 4];
-					cout << tempVictimTag << endl;
+					// cout << tempVictimTag << endl;
 					VC[vcIndex].victimTag = tempVictimTag.to_ulong();
 					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
 					{
@@ -179,7 +179,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						// tempCacheBlock2.lru_position = 7;
 						L2[L2index][L2pos] = tempCacheBlock2;
 						L2[L2index][L2pos].valid = true;
-						cout << "Added to L2" << endl;
+						// cout << "Added to L2" << endl;
 						for (int i = 0; i < 8; i++)
 						{
 							if (i != L2pos)
@@ -210,7 +210,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						// }
 						L2[L2index][L2pos] = tempCacheBlock2;
 						L2[L2index][L2pos].valid = true;
-						cout << "Added to L2" << endl;
+						// cout << "Added to L2" << endl;
 					}
 				}
 				else // If victim cache is not full (DONT THINK THIS IS POSSIBLE)
@@ -228,7 +228,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						tempVictimTag[i] = tempVCIndex[i];
 					for (int i = 4; i < 30; i++)
 						tempVictimTag[i] = tempTag[i - 4];
-					cout << tempVictimTag << endl;
+					// cout << tempVictimTag << endl;
 					VC[vcIndex].victimTag = tempVictimTag.to_ulong();
 					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
 					{
@@ -249,7 +249,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 		}
 		else
 		{
-			cout << "Block only exists in Main Memory" << endl;
+			// cout << "Block only exists in Main Memory" << endl;
 			this->myStat.missL1++;
 			this->myStat.missVic++;
 			this->myStat.missL2++;
@@ -263,7 +263,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 				L1[adrInfo.index].tag = adrInfo.tag;
 				L1[adrInfo.index].valid = true;
 				// TODO add block of MEM to L1 cache
-				cout << "Added to L1" << endl;
+				// cout << "Added to L1" << endl;
 			}
 			else
 			{
@@ -274,7 +274,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 				L1[adrInfo.index].valid = true;
 				L1[adrInfo.index].lru_position = 0; // No need for lru_position in L1 cache
 				// TODO add block of MEM to L1 cache
-				cout << "Added to L1" << endl;
+				// cout << "Added to L1" << endl;
 
 				tempCacheBlock.lru_position = VICTIM_SIZE - 1;
 
@@ -285,9 +285,9 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 					vcIndex = findEvictVictimIndex();
 					tempCacheBlock2 = VC[vcIndex];
 					VC[vcIndex] = tempCacheBlock;
-					cout << "added to victim cache" << endl;
-					cout << tempCacheBlock.tag << endl;
-					cout << adrInfo.index << endl;
+					// cout << "added to victim cache" << endl;
+					// cout << tempCacheBlock.tag << endl;
+					// cout << adrInfo.index << endl;
 					bitset<30> tempVictimTag;
 					bitset<4> tempVCIndex = bitset<4>(adrInfo.index);
 					bitset<26> tempTag = bitset<26>(tempCacheBlock.tag);
@@ -305,14 +305,14 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 					// FIX L2 POSITION HERE
 					tempCacheBlock2.lru_position = 7;
 					bitset<30> tempIndex = bitset<30>(tempCacheBlock2.victimTag);
-					cout << tempIndex << endl;
+					// cout << tempIndex << endl;
 					bitset<4> tempIndex2;
 					for (int i = 0; i < 4; i++)
 					{
 						tempIndex2[i] = tempIndex[i];
 					}
 					L2index = tempIndex2.to_ulong();
-					cout << "calculated L2 index is: " << L2index << endl;
+					// cout << "calculated L2 index is: " << L2index << endl;
 
 					if (L2Full(L2index))
 					{
@@ -320,7 +320,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						// tempCacheBlock2.lru_position = 7;
 						L2[L2index][L2pos] = tempCacheBlock2;
 						L2[L2index][L2pos].valid = true;
-						cout << "Added to L2" << endl;
+						// cout << "Added to L2" << endl;
 						for (int i = 0; i < 8; i++)
 						{
 							if (i != L2pos)
@@ -349,7 +349,7 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						// 	if (L2[adrInfo.index][i].valid && i != adrInfo.L2Pos && L2[adrInfo.index][i].lru_position > L2[adrInfo.index][adrInfo.L2Pos].lru_position)
 						// 		L2[adrInfo.index][i].lru_position--;
 						// }
-						cout << "Added to L2" << endl;
+						// cout << "Added to L2" << endl;
 						L2[L2index][L2pos] = tempCacheBlock2;
 						L2[L2index][L2pos].valid = true;
 					}
@@ -392,10 +392,10 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 					}
 					tempCacheBlock.lru_position = 3;
 					VC[vcIndex] = tempCacheBlock;
-					cout << "Added to victim cache" << endl;
-					// VC[vcIndex].victimTag = tempCacheBlock.tag + adrInfo.index;
-					// cout << "tag: " << tempCacheBlock.tag << endl;
-					// cout << "index: " << adrInfo.index << endl;
+					// cout << "Added to victim cache" << endl;
+					//  VC[vcIndex].victimTag = tempCacheBlock.tag + adrInfo.index;
+					//  cout << "tag: " << tempCacheBlock.tag << endl;
+					//  cout << "index: " << adrInfo.index << endl;
 					bitset<30> tempVictimTag;
 					bitset<4> tempVCIndex = bitset<4>(adrInfo.index);
 					bitset<26> tempTag = bitset<26>(tempCacheBlock.tag);
@@ -403,9 +403,9 @@ void cache::controller(bool MemR, bool MemW, int *data, int adr, int *myMem)
 						tempVictimTag[i] = tempVCIndex[i];
 					for (int i = 4; i < 30; i++)
 						tempVictimTag[i] = tempTag[i - 4];
-					cout << tempVictimTag << endl;
+					// cout << tempVictimTag << endl;
 					VC[vcIndex].victimTag = tempVictimTag.to_ulong();
-					cout << VC[vcIndex].victimTag << endl;
+					// cout << VC[vcIndex].victimTag << endl;
 					for (int i = 0; i < 4; i++) // Reduces LRU position by 1
 					{
 						if (i != vcIndex && VC[i].valid)
@@ -518,9 +518,9 @@ bool cache::containsL1(addressInfo adrInfo)
 // Updates value in L1 cache
 bool cache::updateDataL1(addressInfo adrInfo, int *data)
 {
-	cout << "Data before SW: " << L1[adrInfo.index].data << endl;
+	// cout << "Data before SW: " << L1[adrInfo.index].data << endl;
 	L1[adrInfo.index].data = *data;
-	cout << "Data after SW: " << L1[adrInfo.index].data << endl;
+	// cout << "Data after SW: " << L1[adrInfo.index].data << endl;
 	return true;
 }
 
@@ -557,15 +557,15 @@ bool cache::updateVC(addressInfo adrInfo, int *data)
 // Checks if block exists in L2
 bool cache::containsL2(addressInfo *adrInfo)
 {
-	for (int i = 0; i < L2_CACHE_SETS; i++)
-		for (int j = 0; j < L2_CACHE_WAYS; j++)
-			if (L2[i][j].valid)
-				cout << i << "," << j << endl;
-	cout << "Index to check: " << adrInfo->index << endl;
+	// for (int i = 0; i < L2_CACHE_SETS; i++)
+	// 	for (int j = 0; j < L2_CACHE_WAYS; j++)
+	// 		if (L2[i][j].valid)
+	// 			cout << i << "," << j << endl;
+	// cout << "Index to check: " << adrInfo->index << endl;
 
 	for (int i = 0; i < L2_CACHE_WAYS; i++)
 	{
-		cout << "Valid bit of index 0" << L2[adrInfo->index][0].valid << endl;
+		// cout << "Valid bit of index 0" << L2[adrInfo->index][0].valid << endl;
 		if (L2[adrInfo->index][i].valid && (L2[adrInfo->index][i].tag == adrInfo->tag))
 		{
 			adrInfo->L2Pos = i;
@@ -573,7 +573,7 @@ bool cache::containsL2(addressInfo *adrInfo)
 		}
 		else if (L2[adrInfo->index][i].valid)
 		{
-			cout << "Valid block in L2" << endl;
+			// cout << "Valid block in L2" << endl;
 		}
 	}
 
